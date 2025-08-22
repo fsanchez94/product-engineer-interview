@@ -1,0 +1,33 @@
+[tool.black]
+line-length = 88
+target-version = ['py39']
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | venv
+  | _build
+  | buck-out
+  | build
+  | dist
+  | migrations
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 88
+skip = ["venv", ".venv", "migrations"]
+known_django = ["django"]
+known_rest_framework = ["rest_framework"]
+known_first_party = ["marketplace", "services"]
+sections = ["FUTURE", "STDLIB", "DJANGO", "REST_FRAMEWORK", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
+import_heading_stdlib = "Standard library imports"
+import_heading_django = "Django imports"
+import_heading_rest_framework = "Django REST Framework imports"
+import_heading_thirdparty = "Third-party imports"
+import_heading_firstparty = "Local application imports"

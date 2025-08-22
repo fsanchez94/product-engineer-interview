@@ -1,0 +1,40 @@
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environment
+venv/
+
+# Database
+backend/db.sqlite3
+backend/db.sqlite3-journal
+*.sqlite3
+
+# Django
+*.log
+local_settings.py
+media/
+staticfiles/
+
+# IDE and OS files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Environment variables
+.env
+
+# Distribution
+dist/
+build/
+*.egg-info/
