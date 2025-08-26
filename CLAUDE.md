@@ -32,12 +32,86 @@ Django-based e-commerce marketplace platform with REST API. Core functionality i
 ## Architecture
 
 ### Core Models (marketplace/models.py)
-- **User**: Custom user model with subscription_tier field (free/premium/business)
-- **Seller**: Merchants selling products with commission_rate
-- **Product**: Items with price, cost, inventory tracking
-- **Order/OrderItem**: Purchase records with status tracking
-- **Promotion**: Discount codes with usage limits and validation
-- **Transaction**: Payment processing records
+
+#### Entity Relationship Overview
+```
+Users → Orders → OrderItems → Products → Sellers
+  ↓       ↓         ↓          ↓        ↓
+Reviews  Transactions  ↓     Categories Promotions
+  ↓       ↓            ↓        ↓        ↓
+AnalyticsEvents ←←←←←←←←←←←←←←←←←←←←←←←←←
+```
+
+#### Model Details
+
+**User** (extends Django's AbstractUser)
+- Purpose: Customer accounts with subscription-based discount tiers
+- Key Fields: `user_id` (UUID), `subscription_tier` (free/premium/business), `country`
+- Business Logic: subscription_tier drives automatic discounts (premium=5%, business=10%)
+- Relationships: Creates Orders, writes Reviews, tracked in AnalyticsEvents
+
+**Seller**
+- Purpose: Merchants who list and sell products on the platform
+- Key Fields: `seller_id` (UUID), `commission_rate` (default 15%), `rating`, `total_sales`
+- Business Logic: Commission rates can be overridden per category
+- Relationships: Owns Products and Promotions, receives Reviews
+- Cascade: Deleting seller removes all their products and promotions
+
+**Product**
+- Purpose: Items available for purchase with inventory management
+- Key Fields: `product_id` (UUID), `price`, `cost`, `inventory_count`, `reserved_count`
+- Business Logic: Separate inventory/reserved counts enable reservation system during checkout
+- Relationships: 
+  - Seller: CASCADE (products deleted with seller)
+  - Category: SET_NULL (products remain if category deleted)
+- Weight tracking: `weight_kg` for shipping calculations
+
+**Category**
+- Purpose: Hierarchical product organization with commission overrides
+- Key Fields: `parent` (self-reference), `commission_override`
+- Structure: Self-referencing for nested categories (Electronics → Phones → Smartphones)
+- Business Logic: Can override seller's commission rate for specific categories
+
+**Order**
+- Purpose: Customer purchase records with status workflow
+- Key Fields: `order_id` (UUID), `status`, `subtotal`, `tax`, `shipping`, `total`
+- Status Flow: pending → processing → paid → shipped → delivered
+- Relationships: Belongs to User (CASCADE), contains OrderItems
+- Storage: `shipping_address` stored as JSON
+
+**OrderItem**
+- Purpose: Individual products within an order with pricing snapshot
+- Key Fields: `quantity`, `price_at_purchase`, `discount_amount`
+- Business Logic: Captures pricing at time of purchase (immutable record)
+- Relationships: Order (CASCADE, related_name="items"), Product (CASCADE)
+
+**Transaction**
+- Purpose: Payment processing records with gateway integration
+- Key Fields: `transaction_id` (UUID), `amount`, `status`, `payment_method`
+- Integration: `gateway_response` stores JSON from payment processor
+- Relationships: One-to-one with Order (CASCADE)
+
+**Promotion**
+- Purpose: Seller-created discount codes with usage tracking
+- Key Fields: `code`, `discount_type` (percentage/fixed), `discount_value`, `usage_count/usage_limit`
+- Business Logic: Time-bound (start_date/end_date), minimum purchase thresholds
+- Relationships: Belongs to Seller (CASCADE)
+- Validation: Active promotions checked against dates and usage limits
+
+**Review**
+- Purpose: Customer feedback system for products and sellers
+- Key Fields: `rating`, `comment`, flexible target (product OR seller)
+- Business Logic: Must be linked to an Order (purchase verification)
+- Relationships: User (CASCADE), Order (CASCADE), Product/Seller (optional CASCADE)
+
+**AnalyticsEvent**
+- Purpose: Flexible event tracking for business intelligence
+- Key Fields: `event_type`, `metadata` (JSON for arbitrary data)
+- Relationships: Optional references to User/Seller/Product (SET_NULL for data retention)
+- Use Cases: Order completion, product views, search queries, etc.
+
+#### UUID Usage Pattern
+All main entities use UUID fields (`user_id`, `seller_id`, `product_id`, etc.) for external API references while maintaining Django's auto-increment `id` for internal foreign key relationships. This provides API stability and prevents ID enumeration attacks.
 
 ### Service Layer (backend/services/)
 Modular business logic services:
