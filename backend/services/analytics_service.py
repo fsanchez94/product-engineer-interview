@@ -26,13 +26,18 @@ def track_event(event_type, **kwargs):
 
 
 def get_seller_analytics(seller_id):
+    from marketplace.models import Seller
+    
     end_date = timezone.now()
     start_date = end_date - timedelta(days=30)
+
+    # Get seller information
+    seller = Seller.objects.get(seller_id=seller_id)
 
     orders = OrderItem.objects.filter(
         product__seller__seller_id=seller_id,
         order__created_at__gte=start_date,
-        order__status="paid",
+        order__status__in=["paid", "shipped", "delivered"],
     )
 
     stats = orders.aggregate(
@@ -43,6 +48,7 @@ def get_seller_analytics(seller_id):
     )
 
     return {
+        "seller_name": seller.name,
         "period": "30_days",
         "revenue": float(stats["total_revenue"] or 0),
         "orders": stats["total_orders"] or 0,
@@ -54,7 +60,7 @@ def get_seller_analytics(seller_id):
 def get_product_performance(product_id):
     product = Product.objects.get(product_id=product_id)
 
-    sales = OrderItem.objects.filter(product=product, order__status="paid").aggregate(
+    sales = OrderItem.objects.filter(product=product, order__status__in=["paid", "shipped", "delivered"]).aggregate(
         total_sold=Sum("quantity"), revenue=Sum("price_at_purchase")
     )
 
@@ -71,10 +77,15 @@ def get_seller_sales_performance(seller_id):
     Get sales performance data for a specific seller.
     Returns revenue by category, revenue by product, and quantity by product.
     """
-    # Get all paid order items for this seller
+    from marketplace.models import Seller
+    
+    # Get seller information
+    seller = Seller.objects.get(seller_id=seller_id)
+    
+    # Get all completed order items for this seller
     order_items = OrderItem.objects.filter(
         product__seller__seller_id=seller_id,
-        order__status="paid"
+        order__status__in=["paid", "shipped", "delivered"]
     ).select_related('product', 'product__category')
 
     # Revenue by category
@@ -124,6 +135,7 @@ def get_seller_sales_performance(seller_id):
     ]
 
     return {
+        "seller_name": seller.name,
         "period": "all_time",
         "revenue_by_category": category_data,
         "revenue_by_product": product_revenue_data,
@@ -136,15 +148,20 @@ def get_seller_market_share(seller_id):
     Get market share data for a specific seller.
     Returns platform market share and market share by category.
     """
+    from marketplace.models import Seller
+    
+    # Get seller information
+    seller = Seller.objects.get(seller_id=seller_id)
+    
     # Get seller's total revenue
     seller_revenue = OrderItem.objects.filter(
         product__seller__seller_id=seller_id,
-        order__status="paid"
+        order__status__in=["paid", "shipped", "delivered"]
     ).aggregate(total=Sum('price_at_purchase'))['total'] or 0
 
     # Get total platform revenue
     platform_revenue = OrderItem.objects.filter(
-        order__status="paid"
+        order__status__in=["paid", "shipped", "delivered"]
     ).aggregate(total=Sum('price_at_purchase'))['total'] or 0
 
     # Calculate platform market share
@@ -156,7 +173,7 @@ def get_seller_market_share(seller_id):
     seller_category_revenue = (
         OrderItem.objects.filter(
             product__seller__seller_id=seller_id,
-            order__status="paid"
+            order__status__in=["paid", "shipped", "delivered"]
         )
         .select_related('product__category')
         .values('product__category__name')
@@ -171,7 +188,7 @@ def get_seller_market_share(seller_id):
         # Get total revenue for this category across all sellers
         category_total_revenue = OrderItem.objects.filter(
             product__category__name=category_name,
-            order__status="paid"
+            order__status__in=["paid", "shipped", "delivered"]
         ).aggregate(total=Sum('price_at_purchase'))['total'] or 0
         
         # Calculate market share for this category
@@ -188,6 +205,7 @@ def get_seller_market_share(seller_id):
     category_market_share.sort(key=lambda x: x['share_percentage'], reverse=True)
 
     return {
+        "seller_name": seller.name,
         "platform_market_share": round(platform_market_share, 2),
         "category_market_share": category_market_share,
     }
