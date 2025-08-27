@@ -174,6 +174,8 @@ class OrderViewSet(viewsets.ModelViewSet):
 
 
 class SellerViewSet(viewsets.ModelViewSet):
+    lookup_field = 'seller_id'
+    
     def get_queryset(self):
         # Local application imports
         from marketplace.models import Seller
@@ -187,10 +189,34 @@ class SellerViewSet(viewsets.ModelViewSet):
         return SellerSerializer
 
     @action(detail=True, methods=["get"])
-    def analytics(self, request, pk=None):
+    def analytics(self, request, seller_id=None):
         # Local application imports
         from services import analytics_service
 
         seller = self.get_object()
         analytics_data = analytics_service.get_seller_analytics(seller.seller_id)
         return Response(analytics_data)
+
+    @action(detail=True, methods=["get"], url_path="sales-performance")
+    def sales_performance(self, request, seller_id=None):
+        # Local application imports
+        from services import analytics_service
+
+        try:
+            seller = self.get_object()
+            sales_data = analytics_service.get_seller_sales_performance(seller.seller_id)
+            return Response(sales_data)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=["get"], url_path="market-share")
+    def market_share(self, request, seller_id=None):
+        # Local application imports
+        from services import analytics_service
+
+        try:
+            seller = self.get_object()
+            market_data = analytics_service.get_seller_market_share(seller.seller_id)
+            return Response(market_data)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)

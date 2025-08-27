@@ -64,3 +64,130 @@ def get_product_performance(product_id):
         "revenue": float(sales["revenue"] or 0),
         "current_inventory": product.inventory_count,
     }
+
+
+def get_seller_sales_performance(seller_id):
+    """
+    Get sales performance data for a specific seller.
+    Returns revenue by category, revenue by product, and quantity by product.
+    """
+    # Get all paid order items for this seller
+    order_items = OrderItem.objects.filter(
+        product__seller__seller_id=seller_id,
+        order__status="paid"
+    ).select_related('product', 'product__category')
+
+    # Revenue by category
+    revenue_by_category = (
+        order_items
+        .values('product__category__name')
+        .annotate(revenue=Sum('price_at_purchase'))
+        .order_by('-revenue')
+    )
+
+    # Revenue and quantity by product
+    product_stats = (
+        order_items
+        .values('product__product_id', 'product__name')
+        .annotate(
+            revenue=Sum('price_at_purchase'),
+            quantity_sold=Sum('quantity')
+        )
+        .order_by('-revenue')
+    )
+
+    # Format response
+    category_data = [
+        {
+            "category": item['product__category__name'] or "Uncategorized",
+            "revenue": float(item['revenue'] or 0)
+        }
+        for item in revenue_by_category
+    ]
+
+    product_revenue_data = [
+        {
+            "product_id": str(item['product__product_id']),
+            "name": item['product__name'],
+            "revenue": float(item['revenue'] or 0)
+        }
+        for item in product_stats
+    ]
+
+    product_quantity_data = [
+        {
+            "product_id": str(item['product__product_id']),
+            "name": item['product__name'],
+            "quantity_sold": item['quantity_sold'] or 0
+        }
+        for item in product_stats
+    ]
+
+    return {
+        "period": "all_time",
+        "revenue_by_category": category_data,
+        "revenue_by_product": product_revenue_data,
+        "quantity_by_product": product_quantity_data,
+    }
+
+
+def get_seller_market_share(seller_id):
+    """
+    Get market share data for a specific seller.
+    Returns platform market share and market share by category.
+    """
+    # Get seller's total revenue
+    seller_revenue = OrderItem.objects.filter(
+        product__seller__seller_id=seller_id,
+        order__status="paid"
+    ).aggregate(total=Sum('price_at_purchase'))['total'] or 0
+
+    # Get total platform revenue
+    platform_revenue = OrderItem.objects.filter(
+        order__status="paid"
+    ).aggregate(total=Sum('price_at_purchase'))['total'] or 0
+
+    # Calculate platform market share
+    platform_market_share = 0.0
+    if platform_revenue > 0:
+        platform_market_share = (float(seller_revenue) / float(platform_revenue)) * 100
+
+    # Get market share by category
+    seller_category_revenue = (
+        OrderItem.objects.filter(
+            product__seller__seller_id=seller_id,
+            order__status="paid"
+        )
+        .select_related('product__category')
+        .values('product__category__name')
+        .annotate(seller_revenue=Sum('price_at_purchase'))
+    )
+
+    category_market_share = []
+    for item in seller_category_revenue:
+        category_name = item['product__category__name'] or "Uncategorized"
+        seller_cat_revenue = float(item['seller_revenue'] or 0)
+        
+        # Get total revenue for this category across all sellers
+        category_total_revenue = OrderItem.objects.filter(
+            product__category__name=category_name,
+            order__status="paid"
+        ).aggregate(total=Sum('price_at_purchase'))['total'] or 0
+        
+        # Calculate market share for this category
+        share_percentage = 0.0
+        if category_total_revenue > 0:
+            share_percentage = (seller_cat_revenue / float(category_total_revenue)) * 100
+            
+        category_market_share.append({
+            "category": category_name,
+            "share_percentage": round(share_percentage, 2)
+        })
+
+    # Sort by market share percentage descending
+    category_market_share.sort(key=lambda x: x['share_percentage'], reverse=True)
+
+    return {
+        "platform_market_share": round(platform_market_share, 2),
+        "category_market_share": category_market_share,
+    }
