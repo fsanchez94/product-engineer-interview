@@ -43,6 +43,7 @@ def calculate_price(product_id, quantity, user_tier, promo_code=None, max_discou
                     # Apply promo discount to original price, not tier-discounted price
                     promo_discount_amount = (original_price * quantity) * (promo.discount_value / 100)
                 else:
+                    # Fixed discount applies to the entire order (not per unit)
                     promo_discount_amount = promo.discount_value
 
                 promo.usage_count += 1
@@ -62,7 +63,7 @@ def calculate_price(product_id, quantity, user_tier, promo_code=None, max_discou
     final_total = total_before_discount - total_discount_amount
 
     return {
-        "unit_price": float(unit_price),
-        "total": float(final_total),
-        "discount": float(total_discount_amount),
+        "unit_price": round(float(unit_price), 2),
+        "total": round(float(final_total), 2),
+        "discount": round(float(total_discount_amount), 2),
     }

@@ -162,7 +162,10 @@ class OrderViewSet(viewsets.ModelViewSet):
                     {
                         "order_id": str(order.order_id),
                         "status": "success",
-                        "total": total,
+                        "subtotal": float(subtotal),
+                        "tax": float(tax),
+                        "shipping": float(shipping_cost),
+                        "total": float(total),
                     }
                 )
 
