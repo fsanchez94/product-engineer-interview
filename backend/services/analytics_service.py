@@ -9,7 +9,14 @@ from django.utils import timezone
 from marketplace.models import AnalyticsEvent, OrderItem, Product
 
 
+# ===============================================================================
+# GENERAL UTILITIES
+# ===============================================================================
+
 def track_event(event_type, **kwargs):
+    """
+    General purpose event tracking utility for analytics data collection.
+    """
     # Extract the IDs from kwargs to avoid putting them in metadata
     user_id = kwargs.pop("user_id", None)
     seller_id = kwargs.pop("seller_id", None)
@@ -25,7 +32,17 @@ def track_event(event_type, **kwargs):
     return True
 
 
+# ===============================================================================
+# SELLER DATA ANALYTICS
+# ===============================================================================
+
+# Seller Performance APIs
+# -----------------------
+
 def get_seller_analytics(seller_id):
+    """
+    Get basic analytics for a specific seller (30-day performance summary).
+    """
     from marketplace.models import Seller
     
     end_date = timezone.now()
@@ -57,24 +74,9 @@ def get_seller_analytics(seller_id):
     }
 
 
-def get_product_performance(product_id):
-    product = Product.objects.get(product_id=product_id)
-
-    sales = OrderItem.objects.filter(product=product, order__status__in=["paid", "shipped", "delivered"]).aggregate(
-        total_sold=Sum("quantity"), revenue=Sum("price_at_purchase")
-    )
-
-    return {
-        "product_id": str(product_id),
-        "total_sold": sales["total_sold"] or 0,
-        "revenue": float(sales["revenue"] or 0),
-        "current_inventory": product.inventory_count,
-    }
-
-
 def get_seller_sales_performance(seller_id):
     """
-    Get sales performance data for a specific seller.
+    Get detailed sales performance data for a specific seller.
     Returns revenue by category, revenue by product, and quantity by product.
     """
     from marketplace.models import Seller
@@ -211,7 +213,33 @@ def get_seller_market_share(seller_id):
     }
 
 
-# Platform-wide Analytics Functions
+# Product Performance APIs
+# ------------------------
+
+def get_product_performance(product_id):
+    """
+    Get performance metrics for a specific product.
+    """
+    product = Product.objects.get(product_id=product_id)
+
+    sales = OrderItem.objects.filter(product=product, order__status__in=["paid", "shipped", "delivered"]).aggregate(
+        total_sold=Sum("quantity"), revenue=Sum("price_at_purchase")
+    )
+
+    return {
+        "product_id": str(product_id),
+        "total_sold": sales["total_sold"] or 0,
+        "revenue": float(sales["revenue"] or 0),
+        "current_inventory": product.inventory_count,
+    }
+
+
+# ===============================================================================
+# MARKETPLACE DATA ANALYTICS
+# ===============================================================================
+
+# Category & Market Analysis APIs
+# -------------------------------
 
 def get_platform_category_market_share():
     """
@@ -255,6 +283,9 @@ def get_platform_category_market_share():
     }
 
 
+# Product Analysis APIs
+# ---------------------
+
 def get_platform_top_products():
     """
     Get top products by revenue across the entire platform.
@@ -290,6 +321,9 @@ def get_platform_top_products():
         "top_products": products_data
     }
 
+
+# Search & Customer Behavior APIs
+# -------------------------------
 
 def get_platform_search_analytics():
     """
@@ -328,6 +362,9 @@ def get_platform_search_analytics():
         "most_searched_products": search_data
     }
 
+
+# Geographic Analysis APIs
+# ------------------------
 
 def get_platform_revenue_by_state():
     """
