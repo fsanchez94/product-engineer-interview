@@ -262,3 +262,15 @@ class PlatformViewSet(viewsets.ViewSet):
             return Response(search_data)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    
+    @action(detail=False, methods=["get"], url_path="revenue-by-state")
+    def revenue_by_state(self, request):
+        """
+        Get revenue breakdown by state across the entire platform.
+        """
+        try:
+            from services import analytics_service
+            state_data = analytics_service.get_platform_revenue_by_state()
+            return Response(state_data)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)

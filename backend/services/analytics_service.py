@@ -327,3 +327,67 @@ def get_platform_search_analytics():
         "total_searches": total_searches,
         "most_searched_products": search_data
     }
+
+
+def get_platform_revenue_by_state():
+    """
+    Get revenue by state across the entire platform.
+    Extracts state information from shipping addresses.
+    """
+    from marketplace.models import Order
+    
+    # Get all completed orders
+    orders = Order.objects.filter(
+        status__in=["paid", "shipped", "delivered"]
+    ).values('shipping_address', 'total')
+    
+    # Process orders to extract state information
+    state_revenue = {}
+    total_platform_revenue = 0
+    
+    for order in orders:
+        total_platform_revenue += float(order['total'])
+        
+        # Extract state from shipping address JSON
+        shipping_addr = order['shipping_address']
+        state = None
+        
+        if shipping_addr:
+            # Try different possible keys for state information
+            state = (shipping_addr.get('state') or 
+                    shipping_addr.get('State') or 
+                    shipping_addr.get('province') or 
+                    shipping_addr.get('Province') or
+                    'Unknown')
+        else:
+            state = 'Unknown'
+        
+        # Aggregate revenue by state
+        if state in state_revenue:
+            state_revenue[state]['revenue'] += float(order['total'])
+            state_revenue[state]['orders'] += 1
+        else:
+            state_revenue[state] = {
+                'revenue': float(order['total']),
+                'orders': 1
+            }
+    
+    # Convert to list format and sort by revenue
+    states_data = []
+    for state, data in state_revenue.items():
+        percentage = (data['revenue'] / total_platform_revenue) * 100 if total_platform_revenue > 0 else 0
+        states_data.append({
+            'state': state,
+            'revenue': data['revenue'],
+            'orders': data['orders'],
+            'percentage': round(percentage, 2)
+        })
+    
+    # Sort by revenue descending and take top 20 states
+    states_data.sort(key=lambda x: x['revenue'], reverse=True)
+    top_states = states_data[:20]
+    
+    return {
+        "total_platform_revenue": total_platform_revenue,
+        "states": top_states
+    }

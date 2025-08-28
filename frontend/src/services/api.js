@@ -41,3 +41,44 @@ export const getMarketShare = async (sellerId = DEFAULT_SELLER_ID) => {
     throw error;
   }
 };
+
+// Platform-wide analytics APIs
+export const getPlatformCategoryMarketShare = async () => {
+  try {
+    const response = await api.get('/api/platform/category-market-share/');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching platform category market share:', error);
+    throw error;
+  }
+};
+
+export const getPlatformTopProducts = async () => {
+  try {
+    const response = await api.get('/api/platform/top-products/');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching platform top products:', error);
+    throw error;
+  }
+};
+
+export const getPlatformSearchAnalytics = async () => {
+  try {
+    const response = await api.get('/api/platform/search-analytics/');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching platform search analytics:', error);
+    throw error;
+  }
+};
+
+export const getPlatformRevenueByState = async () => {
+  try {
+    const response = await api.get('/api/platform/revenue-by-state/');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching platform revenue by state:', error);
+    throw error;
+  }
+};
