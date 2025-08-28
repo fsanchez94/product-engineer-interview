@@ -13,6 +13,7 @@ router = routers.DefaultRouter()
 router.register(r"products", views.ProductViewSet, basename="product")
 router.register(r"orders", views.OrderViewSet, basename="order")
 router.register(r"sellers", views.SellerViewSet, basename="seller")
+router.register(r"platform", views.PlatformViewSet, basename="platform")
 
 urlpatterns = [
     path("", lambda request: redirect("admin/", permanent=False)),

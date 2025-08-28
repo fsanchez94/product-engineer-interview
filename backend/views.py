@@ -220,3 +220,45 @@ class SellerViewSet(viewsets.ModelViewSet):
             return Response(market_data)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class PlatformViewSet(viewsets.ViewSet):
+    """
+    Platform-wide analytics endpoints for marketplace insights.
+    """
+    
+    @action(detail=False, methods=["get"], url_path="category-market-share")
+    def category_market_share(self, request):
+        """
+        Get market share by category across the entire platform.
+        """
+        try:
+            from services import analytics_service
+            market_share_data = analytics_service.get_platform_category_market_share()
+            return Response(market_share_data)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    
+    @action(detail=False, methods=["get"], url_path="top-products")
+    def top_products(self, request):
+        """
+        Get top products by revenue across the entire platform.
+        """
+        try:
+            from services import analytics_service
+            products_data = analytics_service.get_platform_top_products()
+            return Response(products_data)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    
+    @action(detail=False, methods=["get"], url_path="search-analytics")
+    def search_analytics(self, request):
+        """
+        Get search analytics including most searched terms and conversion rates.
+        """
+        try:
+            from services import analytics_service
+            search_data = analytics_service.get_platform_search_analytics()
+            return Response(search_data)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)

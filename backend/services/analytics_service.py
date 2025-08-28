@@ -209,3 +209,121 @@ def get_seller_market_share(seller_id):
         "platform_market_share": round(platform_market_share, 2),
         "category_market_share": category_market_share,
     }
+
+
+# Platform-wide Analytics Functions
+
+def get_platform_category_market_share():
+    """
+    Get market share by category across the entire platform.
+    Returns revenue and percentage for each category.
+    """
+    from marketplace.models import OrderItem
+    
+    # Get total revenue by category across all sellers
+    category_revenue = OrderItem.objects.filter(
+        order__status__in=["paid", "shipped", "delivered"]
+    ).values('product__category__name').annotate(
+        total_revenue=Sum('price_at_purchase'),
+        total_orders=Count('order__order_id', distinct=True),
+        total_items=Sum('quantity')
+    ).order_by('-total_revenue')
+    
+    # Get total platform revenue
+    total_platform_revenue = OrderItem.objects.filter(
+        order__status__in=["paid", "shipped", "delivered"]
+    ).aggregate(total=Sum('price_at_purchase'))['total'] or 0
+    
+    # Calculate percentages and format response
+    category_data = []
+    for item in category_revenue:
+        category_name = item['product__category__name'] or "Uncategorized"
+        revenue = float(item['total_revenue'] or 0)
+        percentage = (revenue / float(total_platform_revenue)) * 100 if total_platform_revenue > 0 else 0
+        
+        category_data.append({
+            "category": category_name,
+            "revenue": revenue,
+            "percentage": round(percentage, 2),
+            "orders": item['total_orders'] or 0,
+            "items_sold": item['total_items'] or 0
+        })
+    
+    return {
+        "total_platform_revenue": float(total_platform_revenue),
+        "categories": category_data
+    }
+
+
+def get_platform_top_products():
+    """
+    Get top products by revenue across the entire platform.
+    """
+    from marketplace.models import OrderItem
+    
+    # Get top products by revenue across all sellers
+    top_products = OrderItem.objects.filter(
+        order__status__in=["paid", "shipped", "delivered"]
+    ).values(
+        'product__product_id',
+        'product__name',
+        'product__category__name'
+    ).annotate(
+        total_revenue=Sum('price_at_purchase'),
+        total_quantity_sold=Sum('quantity'),
+        total_orders=Count('order__order_id', distinct=True)
+    ).order_by('-total_revenue')[:20]  # Top 20 products
+    
+    # Format response
+    products_data = []
+    for item in top_products:
+        products_data.append({
+            "product_id": str(item['product__product_id']),
+            "name": item['product__name'],
+            "category": item['product__category__name'] or "Uncategorized",
+            "revenue": float(item['total_revenue'] or 0),
+            "quantity_sold": item['total_quantity_sold'] or 0,
+            "orders": item['total_orders'] or 0
+        })
+    
+    return {
+        "top_products": products_data
+    }
+
+
+def get_platform_search_analytics():
+    """
+    Get search analytics showing number of searches by product.
+    """
+    from marketplace.models import AnalyticsEvent
+    
+    # Get search events that have a product associated
+    product_searches = AnalyticsEvent.objects.filter(
+        event_type="search",
+        product__isnull=False
+    ).select_related('product', 'product__category').values(
+        'product__product_id',
+        'product__name',
+        'product__category__name'
+    ).annotate(
+        search_count=Count('id')
+    ).order_by('-search_count')[:20]  # Top 20 most searched products
+    
+    # Get total search count
+    total_searches = AnalyticsEvent.objects.filter(event_type="search").count()
+    
+    # Format product search data
+    search_data = []
+    for item in product_searches:
+        search_data.append({
+            "product_id": str(item['product__product_id']),
+            "name": item['product__name'],
+            "category": item['product__category__name'] or "Uncategorized",
+            "search_count": item['search_count'],
+            "percentage": round((item['search_count'] / total_searches) * 100, 2) if total_searches > 0 else 0
+        })
+    
+    return {
+        "total_searches": total_searches,
+        "most_searched_products": search_data
+    }

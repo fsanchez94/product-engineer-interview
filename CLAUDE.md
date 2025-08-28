@@ -7,8 +7,6 @@ Django-based e-commerce marketplace platform with REST API. Core functionality i
 
 ## Development Commands
 
-**IMPORTANT**: This environment does not support running bash commands directly. When development tasks require command execution, Claude should provide the specific commands for the user to run manually.
-
 ### Setup and Running
 - `make run` - Start development server (auto-setup included)
 - `make setup` - Initial setup (venv, install dependencies)
@@ -127,7 +125,9 @@ Modular business logic services:
 ### Main API Endpoints
 - `/api/products/` - Product CRUD and search
 - `/api/orders/checkout/` - Main checkout endpoint with full order processing
-- `/api/sellers/{id}/analytics/` - Seller performance data
+- `/api/sellers/{id}/analytics/` - General seller performance data
+- `/api/sellers/{id}/sales-performance/` - Detailed sales metrics and revenue data
+- `/api/sellers/{id}/market-share/` - Market share analysis and competitive positioning
 
 ### Checkout Process Flow
 1. User validation and tier lookup
