@@ -9,6 +9,7 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
+import ChartDataLabels from 'chartjs-plugin-datalabels';
 import { getSalesPerformance } from '../../services/api';
 
 ChartJS.register(
@@ -17,7 +18,8 @@ ChartJS.register(
   BarElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
+  ChartDataLabels
 );
 
 const TopProductsChart = () => {
@@ -73,6 +75,19 @@ const TopProductsChart = () => {
           label: function(context) {
             return `${context.label}: $${context.parsed.y.toLocaleString()}`;
           }
+        }
+      },
+      datalabels: {
+        display: true,
+        align: 'top',
+        anchor: 'end',
+        color: '#333',
+        font: {
+          weight: 'bold',
+          size: 11,
+        },
+        formatter: function(value) {
+          return '$' + value.toLocaleString(undefined, {maximumFractionDigits: 0});
         }
       }
     },

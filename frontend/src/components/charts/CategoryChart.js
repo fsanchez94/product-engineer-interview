@@ -7,9 +7,10 @@ import {
   Legend,
   Title,
 } from 'chart.js';
+import ChartDataLabels from 'chartjs-plugin-datalabels';
 import { getSalesPerformance } from '../../services/api';
 
-ChartJS.register(ArcElement, Tooltip, Legend, Title);
+ChartJS.register(ArcElement, Tooltip, Legend, Title, ChartDataLabels);
 
 const CategoryChart = () => {
   const [chartData, setChartData] = useState(null);
@@ -73,6 +74,19 @@ const CategoryChart = () => {
             const percentage = ((value / total) * 100).toFixed(1);
             return `${context.label}: $${value.toLocaleString()} (${percentage}%)`;
           }
+        }
+      },
+      datalabels: {
+        display: true,
+        color: 'white',
+        font: {
+          weight: 'bold',
+          size: 12,
+        },
+        formatter: function(value, context) {
+          const total = context.dataset.data.reduce((a, b) => a + b, 0);
+          const percentage = ((value / total) * 100).toFixed(1);
+          return percentage + '%';
         }
       }
     },

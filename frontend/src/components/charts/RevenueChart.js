@@ -10,6 +10,7 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
+import ChartDataLabels from 'chartjs-plugin-datalabels';
 import { getSellerAnalytics } from '../../services/api';
 
 ChartJS.register(
@@ -19,7 +20,8 @@ ChartJS.register(
   LineElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
+  ChartDataLabels
 );
 
 const RevenueChart = () => {
@@ -73,6 +75,19 @@ const RevenueChart = () => {
         display: true,
         text: `Revenue Trends - ${sellerName}`,
       },
+      datalabels: {
+        display: true,
+        align: 'top',
+        anchor: 'end',
+        color: '#333',
+        font: {
+          weight: 'bold',
+          size: 12,
+        },
+        formatter: function(value) {
+          return '$' + value.toLocaleString(undefined, {maximumFractionDigits: 0});
+        }
+      }
     },
     scales: {
       y: {

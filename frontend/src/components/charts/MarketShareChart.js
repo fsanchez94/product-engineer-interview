@@ -9,6 +9,7 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
+import ChartDataLabels from 'chartjs-plugin-datalabels';
 import { getMarketShare } from '../../services/api';
 
 ChartJS.register(
@@ -17,7 +18,8 @@ ChartJS.register(
   BarElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
+  ChartDataLabels
 );
 
 const MarketShareChart = () => {
@@ -69,6 +71,19 @@ const MarketShareChart = () => {
           label: function(context) {
             return `${context.label}: ${context.parsed.x.toFixed(1)}%`;
           }
+        }
+      },
+      datalabels: {
+        display: true,
+        align: 'end',
+        anchor: 'end',
+        color: '#333',
+        font: {
+          weight: 'bold',
+          size: 12,
+        },
+        formatter: function(value) {
+          return value.toFixed(1) + '%';
         }
       }
     },
