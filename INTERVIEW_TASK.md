@@ -43,7 +43,6 @@ Our seller success team has received feedback from merchants on our platform.
 - Product thinking and business impact consideration
 - Code quality and organization
 - Communication of decisions and trade-offs
-- Solution completeness and correctness
 
 ## Available Tools
 - `make run` - Start server

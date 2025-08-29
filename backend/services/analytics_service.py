@@ -42,6 +42,8 @@ def track_event(event_type, **kwargs):
 def get_seller_analytics(seller_id):
     """
     Get basic analytics for a specific seller (30-day performance summary).
+    
+    Frontend Usage: RevenueChart.js - Powers the revenue trends line chart
     """
     from marketplace.models import Seller
     
@@ -78,6 +80,10 @@ def get_seller_sales_performance(seller_id):
     """
     Get detailed sales performance data for a specific seller.
     Returns revenue by category, revenue by product, and quantity by product.
+    
+    Frontend Usage: 
+    - CategoryChart.js - Powers the revenue by category pie chart
+    - TopProductsChart.js - Powers the seller's top products bar chart
     """
     from marketplace.models import Seller
     
@@ -149,6 +155,8 @@ def get_seller_market_share(seller_id):
     """
     Get market share data for a specific seller.
     Returns platform market share and market share by category.
+    
+    Frontend Usage: MarketShareChart.js - Powers the market share bar chart
     """
     from marketplace.models import Seller
     
@@ -182,21 +190,33 @@ def get_seller_market_share(seller_id):
         .annotate(seller_revenue=Sum('price_at_purchase'))
     )
 
+    # Get total revenue for all categories in one query (fixes N+1 problem)
+    all_category_totals = (
+        OrderItem.objects.filter(
+            order__status__in=["paid", "shipped", "delivered"]
+        )
+        .values('product__category__name')
+        .annotate(total_revenue=Sum('price_at_purchase'))
+    )
+    
+    # Create a dictionary for fast lookup of category totals
+    category_totals_dict = {}
+    for cat in all_category_totals:
+        category_name = cat['product__category__name'] or "Uncategorized"
+        category_totals_dict[category_name] = float(cat['total_revenue'] or 0)
+
     category_market_share = []
     for item in seller_category_revenue:
         category_name = item['product__category__name'] or "Uncategorized"
         seller_cat_revenue = float(item['seller_revenue'] or 0)
         
-        # Get total revenue for this category across all sellers
-        category_total_revenue = OrderItem.objects.filter(
-            product__category__name=category_name,
-            order__status__in=["paid", "shipped", "delivered"]
-        ).aggregate(total=Sum('price_at_purchase'))['total'] or 0
+        # Look up total revenue from pre-computed dictionary
+        category_total_revenue = category_totals_dict.get(category_name, 0)
         
         # Calculate market share for this category
         share_percentage = 0.0
         if category_total_revenue > 0:
-            share_percentage = (seller_cat_revenue / float(category_total_revenue)) * 100
+            share_percentage = (seller_cat_revenue / category_total_revenue) * 100
             
         category_market_share.append({
             "category": category_name,
@@ -213,26 +233,6 @@ def get_seller_market_share(seller_id):
     }
 
 
-# Product Performance APIs
-# ------------------------
-
-def get_product_performance(product_id):
-    """
-    Get performance metrics for a specific product.
-    """
-    product = Product.objects.get(product_id=product_id)
-
-    sales = OrderItem.objects.filter(product=product, order__status__in=["paid", "shipped", "delivered"]).aggregate(
-        total_sold=Sum("quantity"), revenue=Sum("price_at_purchase")
-    )
-
-    return {
-        "product_id": str(product_id),
-        "total_sold": sales["total_sold"] or 0,
-        "revenue": float(sales["revenue"] or 0),
-        "current_inventory": product.inventory_count,
-    }
-
 
 # ===============================================================================
 # MARKETPLACE DATA ANALYTICS
@@ -245,6 +245,8 @@ def get_platform_category_market_share():
     """
     Get market share by category across the entire platform.
     Returns revenue and percentage for each category.
+    
+    Frontend Usage: CategoryMarketShareChart.js - Powers the platform category distribution pie chart
     """
     from marketplace.models import OrderItem
     
@@ -289,6 +291,8 @@ def get_platform_category_market_share():
 def get_platform_top_products():
     """
     Get top products by revenue across the entire platform.
+    
+    Frontend Usage: PlatformTopProductsChart.js - Powers the top products bar chart in marketplace analytics
     """
     from marketplace.models import OrderItem
     
@@ -328,6 +332,8 @@ def get_platform_top_products():
 def get_platform_search_analytics():
     """
     Get search analytics showing number of searches by product.
+    
+    Frontend Usage: SearchAnalyticsChart.js - Powers the search analytics bar chart
     """
     from marketplace.models import AnalyticsEvent
     
@@ -370,6 +376,8 @@ def get_platform_revenue_by_state():
     """
     Get revenue by state across the entire platform.
     Extracts state information from shipping addresses.
+    
+    Frontend Usage: RevenueByStateChart.js - Powers the geographic revenue distribution bar chart
     """
     from marketplace.models import Order
     

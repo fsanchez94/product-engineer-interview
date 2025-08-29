@@ -12,6 +12,7 @@ import {
 } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 import { getSellerAnalytics } from '../../services/api';
+import { useSeller } from '../../contexts/SellerContext';
 
 ChartJS.register(
   CategoryScale,
@@ -26,13 +27,16 @@ ChartJS.register(
 
 const RevenueChart = () => {
   const [chartData, setChartData] = useState(null);
-  const [sellerName, setSellerName] = useState('');
+  const [loading, setLoading] = useState(true);
+  const { selectedSeller } = useSeller();
 
   useEffect(() => {
     const fetchData = async () => {
+      if (!selectedSeller?.seller_id) return;
+      
       try {
-        const data = await getSellerAnalytics();
-        setSellerName(data.seller_name);
+        setLoading(true);
+        const data = await getSellerAnalytics(selectedSeller.seller_id);
         
         // For now, create a simple representation with the current revenue
         // In a real implementation, we'd need time-series data
@@ -59,11 +63,13 @@ const RevenueChart = () => {
         });
       } catch (error) {
         console.error('Failed to fetch revenue data:', error);
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchData();
-  }, []);
+  }, [selectedSeller?.seller_id]);
 
   const options = {
     responsive: true,
@@ -73,7 +79,7 @@ const RevenueChart = () => {
       },
       title: {
         display: true,
-        text: `Revenue Trends - ${sellerName}`,
+        text: `Revenue Trends - ${selectedSeller?.name || 'Loading...'}`,
       },
       datalabels: {
         display: true,
@@ -103,10 +109,12 @@ const RevenueChart = () => {
 
   return (
     <div style={{ width: '100%', height: '400px' }}>
-      {chartData ? (
+      {loading ? (
+        <div>Loading revenue chart...</div>
+      ) : chartData ? (
         <Line data={chartData} options={options} />
       ) : (
-        <div>Loading revenue chart...</div>
+        <div>No revenue data available</div>
       )}
     </div>
   );

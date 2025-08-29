@@ -11,6 +11,7 @@ import {
 } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 import { getMarketShare } from '../../services/api';
+import { useSeller } from '../../contexts/SellerContext';
 
 ChartJS.register(
   CategoryScale,
@@ -24,13 +25,16 @@ ChartJS.register(
 
 const MarketShareChart = () => {
   const [chartData, setChartData] = useState(null);
-  const [sellerName, setSellerName] = useState('');
+  const [loading, setLoading] = useState(true);
+  const { selectedSeller } = useSeller();
 
   useEffect(() => {
     const fetchData = async () => {
+      if (!selectedSeller?.seller_id) return;
+      
       try {
-        const data = await getMarketShare();
-        setSellerName(data.seller_name);
+        setLoading(true);
+        const data = await getMarketShare(selectedSeller.seller_id);
         
         const categories = data.category_market_share.map(item => item.category);
         const shares = data.category_market_share.map(item => item.share_percentage);
@@ -49,11 +53,13 @@ const MarketShareChart = () => {
         });
       } catch (error) {
         console.error('Failed to fetch market share data:', error);
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchData();
-  }, []);
+  }, [selectedSeller?.seller_id]);
 
   const options = {
     responsive: true,
@@ -64,7 +70,7 @@ const MarketShareChart = () => {
       },
       title: {
         display: true,
-        text: `Market Share by Category - ${sellerName}`,
+        text: `Market Share by Category - ${selectedSeller?.name || 'Loading...'}`,
       },
       tooltip: {
         callbacks: {
@@ -102,10 +108,12 @@ const MarketShareChart = () => {
 
   return (
     <div style={{ width: '100%', height: '400px' }}>
-      {chartData ? (
+      {loading ? (
+        <div>Loading market share chart...</div>
+      ) : chartData ? (
         <Bar data={chartData} options={options} />
       ) : (
-        <div>Loading market share chart...</div>
+        <div>No market share data available</div>
       )}
     </div>
   );

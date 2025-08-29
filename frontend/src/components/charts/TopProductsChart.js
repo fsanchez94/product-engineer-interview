@@ -11,6 +11,7 @@ import {
 } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 import { getSalesPerformance } from '../../services/api';
+import { useSeller } from '../../contexts/SellerContext';
 
 ChartJS.register(
   CategoryScale,
@@ -24,13 +25,16 @@ ChartJS.register(
 
 const TopProductsChart = () => {
   const [chartData, setChartData] = useState(null);
-  const [sellerName, setSellerName] = useState('');
+  const [loading, setLoading] = useState(true);
+  const { selectedSeller } = useSeller();
 
   useEffect(() => {
     const fetchData = async () => {
+      if (!selectedSeller?.seller_id) return;
+      
       try {
-        const data = await getSalesPerformance();
-        setSellerName(data.seller_name);
+        setLoading(true);
+        const data = await getSalesPerformance(selectedSeller.seller_id);
         
         // Get top 5 products by revenue
         const topProducts = data.revenue_by_product.slice(0, 5);
@@ -54,11 +58,13 @@ const TopProductsChart = () => {
         });
       } catch (error) {
         console.error('Failed to fetch top products data:', error);
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchData();
-  }, []);
+  }, [selectedSeller?.seller_id]);
 
   const options = {
     responsive: true,
@@ -68,7 +74,7 @@ const TopProductsChart = () => {
       },
       title: {
         display: true,
-        text: `Top 5 Products by Revenue - ${sellerName}`,
+        text: `Top 5 Products by Revenue - ${selectedSeller?.name || 'Loading...'}`,
       },
       tooltip: {
         callbacks: {
@@ -111,10 +117,12 @@ const TopProductsChart = () => {
 
   return (
     <div style={{ width: '100%', height: '400px' }}>
-      {chartData ? (
+      {loading ? (
+        <div>Loading top products chart...</div>
+      ) : chartData ? (
         <Bar data={chartData} options={options} />
       ) : (
-        <div>Loading top products chart...</div>
+        <div>No products data available</div>
       )}
     </div>
   );

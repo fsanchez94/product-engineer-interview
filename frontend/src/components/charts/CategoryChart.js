@@ -9,18 +9,22 @@ import {
 } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 import { getSalesPerformance } from '../../services/api';
+import { useSeller } from '../../contexts/SellerContext';
 
 ChartJS.register(ArcElement, Tooltip, Legend, Title, ChartDataLabels);
 
 const CategoryChart = () => {
   const [chartData, setChartData] = useState(null);
-  const [sellerName, setSellerName] = useState('');
+  const [loading, setLoading] = useState(true);
+  const { selectedSeller } = useSeller();
 
   useEffect(() => {
     const fetchData = async () => {
+      if (!selectedSeller?.seller_id) return;
+      
       try {
-        const data = await getSalesPerformance();
-        setSellerName(data.seller_name);
+        setLoading(true);
+        const data = await getSalesPerformance(selectedSeller.seller_id);
         
         const categories = data.revenue_by_category.map(item => item.category);
         const revenues = data.revenue_by_category.map(item => item.revenue);
@@ -50,11 +54,13 @@ const CategoryChart = () => {
         });
       } catch (error) {
         console.error('Failed to fetch category data:', error);
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchData();
-  }, []);
+  }, [selectedSeller?.seller_id]);
 
   const options = {
     responsive: true,
@@ -64,7 +70,7 @@ const CategoryChart = () => {
       },
       title: {
         display: true,
-        text: `Revenue by Category - ${sellerName}`,
+        text: `Revenue by Category - ${selectedSeller?.name || 'Loading...'}`,
       },
       tooltip: {
         callbacks: {
@@ -94,10 +100,12 @@ const CategoryChart = () => {
 
   return (
     <div style={{ width: '100%', height: '400px' }}>
-      {chartData ? (
+      {loading ? (
+        <div>Loading category chart...</div>
+      ) : chartData ? (
         <Pie data={chartData} options={options} />
       ) : (
-        <div>Loading category chart...</div>
+        <div>No category data available</div>
       )}
     </div>
   );

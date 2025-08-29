@@ -3,6 +3,7 @@ import RevenueChart from '../charts/RevenueChart';
 import CategoryChart from '../charts/CategoryChart';
 import MarketShareChart from '../charts/MarketShareChart';
 import TopProductsChart from '../charts/TopProductsChart';
+import SellerSelector from '../SellerSelector';
 import '../layout/Dashboard.css';
 
 const SellerAnalytics = () => {
@@ -11,6 +12,7 @@ const SellerAnalytics = () => {
       <header className="dashboard-header">
         <h1>Seller Analytics Dashboard</h1>
         <p>Performance insights and market intelligence</p>
+        <SellerSelector />
       </header>
       
       <div className="charts-grid">

@@ -1,15 +1,18 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
 import Navbar from './Navbar';
+import { SellerProvider } from '../../contexts/SellerContext';
 
 const AppLayout = () => {
   return (
-    <div>
-      <Navbar />
-      <main>
-        <Outlet />
-      </main>
-    </div>
+    <SellerProvider>
+      <div>
+        <Navbar />
+        <main>
+          <Outlet />
+        </main>
+      </div>
+    </SellerProvider>
   );
 };
 

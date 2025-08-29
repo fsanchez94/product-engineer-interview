@@ -188,6 +188,35 @@ class SellerViewSet(viewsets.ModelViewSet):
 
         return SellerSerializer
 
+    @action(detail=False, methods=["get"])
+    def list_sellers(self, request):
+        """
+        Get list of all sellers for dropdown selection.
+        
+        Frontend Usage: SellerSelector.js - Populates the seller dropdown
+        """
+        try:
+            from marketplace.models import Seller
+            
+            sellers = Seller.objects.all().values(
+                'seller_id', 'name', 'rating'
+            ).order_by('name')
+            
+            sellers_data = [
+                {
+                    'seller_id': str(seller['seller_id']),
+                    'name': seller['name'],
+                    'rating': float(seller['rating'] or 0)
+                }
+                for seller in sellers
+            ]
+            
+            return Response({
+                'sellers': sellers_data
+            })
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
     @action(detail=True, methods=["get"])
     def analytics(self, request, seller_id=None):
         # Local application imports

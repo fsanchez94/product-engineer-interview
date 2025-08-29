@@ -9,10 +9,12 @@ const api = axios.create({
   },
 });
 
-// Hardcoded seller ID for development - TechGear Pro
-const DEFAULT_SELLER_ID = 'df5141f4-c445-42da-bbd6-8d7ec647bedf';
-
-export const getSellerAnalytics = async (sellerId = DEFAULT_SELLER_ID) => {
+// Seller analytics APIs - sellerId is now required
+export const getSellerAnalytics = async (sellerId) => {
+  if (!sellerId) {
+    throw new Error('sellerId is required');
+  }
+  
   try {
     const response = await api.get(`/api/sellers/${sellerId}/analytics/`);
     return response.data;
@@ -22,7 +24,11 @@ export const getSellerAnalytics = async (sellerId = DEFAULT_SELLER_ID) => {
   }
 };
 
-export const getSalesPerformance = async (sellerId = DEFAULT_SELLER_ID) => {
+export const getSalesPerformance = async (sellerId) => {
+  if (!sellerId) {
+    throw new Error('sellerId is required');
+  }
+  
   try {
     const response = await api.get(`/api/sellers/${sellerId}/sales-performance/`);
     return response.data;
@@ -32,12 +38,27 @@ export const getSalesPerformance = async (sellerId = DEFAULT_SELLER_ID) => {
   }
 };
 
-export const getMarketShare = async (sellerId = DEFAULT_SELLER_ID) => {
+export const getMarketShare = async (sellerId) => {
+  if (!sellerId) {
+    throw new Error('sellerId is required');
+  }
+  
   try {
     const response = await api.get(`/api/sellers/${sellerId}/market-share/`);
     return response.data;
   } catch (error) {
     console.error('Error fetching market share:', error);
+    throw error;
+  }
+};
+
+// New API to fetch list of sellers
+export const getSellers = async () => {
+  try {
+    const response = await api.get('/api/sellers/list_sellers/');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching sellers list:', error);
     throw error;
   }
 };
