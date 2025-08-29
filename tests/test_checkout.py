@@ -1,11 +1,13 @@
-# Django imports
-from django.test import TestCase
-from django.utils import timezone
+# Standard library imports
 from datetime import timedelta
 from decimal import Decimal
 
+# Django imports
+from django.test import TestCase
+from django.utils import timezone
+
 # Local application imports
-from marketplace.models import Category, Product, Seller, User, Promotion
+from marketplace.models import Category, Product, Promotion, Seller, User
 
 
 class CheckoutTests(TestCase):
@@ -27,41 +29,45 @@ class CheckoutTests(TestCase):
         self.user = User.objects.create_user(
             username="testuser", email="test@test.com", password="testpass"
         )
-        
+
         # Create users with different subscription tiers
         self.premium_user = User.objects.create_user(
-            username="premium", email="premium@test.com", password="testpass",
-            subscription_tier="premium"
+            username="premium",
+            email="premium@test.com",
+            password="testpass",
+            subscription_tier="premium",
         )
-        
+
         self.business_user = User.objects.create_user(
-            username="business", email="business@test.com", password="testpass", 
-            subscription_tier="business"
+            username="business",
+            email="business@test.com",
+            password="testpass",
+            subscription_tier="business",
         )
-        
+
         # Create a high-value product for testing
         self.expensive_product = Product.objects.create(
             seller=self.seller,
             name="Expensive Product",
             description="High-value test product",
             category=self.category,
-            price=Decimal('1299.99'),
-            cost=Decimal('800.00'),
+            price=Decimal("1299.99"),
+            cost=Decimal("800.00"),
             inventory_count=5,
         )
-        
+
         # Create promotion codes for checkout tests
         self.welcome_promo = Promotion.objects.create(
             code="CHECKOUT10",
             seller=self.seller,
             discount_type="percentage",
-            discount_value=Decimal('10.00'),
-            min_purchase_amount=Decimal('0'),
+            discount_value=Decimal("10.00"),
+            min_purchase_amount=Decimal("0"),
             usage_limit=10000,  # High limit to avoid conflicts
             usage_count=0,
             start_date=timezone.now() - timedelta(days=1),
             end_date=timezone.now() + timedelta(days=30),
-            is_active=True
+            is_active=True,
         )
 
     def test_single_item_checkout(self):
@@ -126,7 +132,7 @@ class CheckoutTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn("order_id", response.data)
-        
+
         # Premium tier should get 5% discount on $100 product
         # $100 - $5 = $95, plus taxes/shipping
         order = response.data
@@ -143,7 +149,7 @@ class CheckoutTests(TestCase):
                 "shipping_address": {
                     "street": "123 Test St",
                     "city": "Test City",
-                    "country": "US", 
+                    "country": "US",
                     "zip": "12345",
                 },
             },
@@ -152,11 +158,13 @@ class CheckoutTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn("order_id", response.data)
-        
+
         # Business tier should get 10% discount on $100 product
         # $100 - $10 = $90, plus taxes/shipping
         order = response.data
-        self.assertLess(order["subtotal"], 95.00)  # Should be more discounted than premium
+        self.assertLess(
+            order["subtotal"], 95.00
+        )  # Should be more discounted than premium
 
     def test_checkout_with_promo_code(self):
         """Test checkout with promo code applied"""
@@ -179,8 +187,8 @@ class CheckoutTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn("order_id", response.data)
-        
-        # Free user with CHECKOUT10 should get 10% discount  
+
+        # Free user with CHECKOUT10 should get 10% discount
         # $100 - $10 = $90, plus taxes/shipping
         order = response.data
         self.assertLess(order["subtotal"], 100.00)  # Should be discounted
@@ -191,7 +199,12 @@ class CheckoutTests(TestCase):
             "/api/orders/checkout/",
             {
                 "user_id": str(self.business_user.user_id),
-                "items": [{"product_id": str(self.expensive_product.product_id), "quantity": 1}],
+                "items": [
+                    {
+                        "product_id": str(self.expensive_product.product_id),
+                        "quantity": 1,
+                    }
+                ],
                 "payment_method": "card",
                 "shipping_address": {
                     "street": "123 Test St",
@@ -205,7 +218,7 @@ class CheckoutTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn("order_id", response.data)
-        
+
         # Business tier: 10% discount on $1299.99
         # $1299.99 - $129.99 = $1170.00, plus taxes/shipping
         order = response.data
@@ -219,7 +232,7 @@ class CheckoutTests(TestCase):
             {
                 "user_id": str(self.business_user.user_id),
                 "items": [{"product_id": str(self.product.product_id), "quantity": 1}],
-                "payment_method": "card", 
+                "payment_method": "card",
                 "promo_code": "CHECKOUT10",
                 "shipping_address": {
                     "street": "123 Test St",
@@ -233,7 +246,7 @@ class CheckoutTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn("order_id", response.data)
-        
+
         # Business (10%) + CHECKOUT10 (10%) = 20%, but capped at 10%
         # Should result in exactly $90 subtotal (10% discount on $100)
         order = response.data
@@ -247,8 +260,8 @@ class CheckoutTests(TestCase):
             name="Second Product",
             description="Another test product",
             category=self.category,
-            price=Decimal('50.00'),
-            cost=Decimal('25.00'),
+            price=Decimal("50.00"),
+            cost=Decimal("25.00"),
             inventory_count=10,
         )
 
@@ -258,13 +271,13 @@ class CheckoutTests(TestCase):
                 "user_id": str(self.premium_user.user_id),
                 "items": [
                     {"product_id": str(self.product.product_id), "quantity": 2},
-                    {"product_id": str(product2.product_id), "quantity": 1}
+                    {"product_id": str(product2.product_id), "quantity": 1},
                 ],
                 "payment_method": "card",
                 "promo_code": "CHECKOUT10",
                 "shipping_address": {
                     "street": "123 Test St",
-                    "city": "Test City", 
+                    "city": "Test City",
                     "country": "US",
                     "zip": "12345",
                 },
@@ -274,7 +287,7 @@ class CheckoutTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn("order_id", response.data)
-        
+
         # Total: 2×$100 + 1×$50 = $250 base
         # Premium (5%) + CHECKOUT10 (10%) = 15%, capped at 10%
         # Final subtotal: $250 - $25 = $225
@@ -302,7 +315,7 @@ class CheckoutTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn("order_id", response.data)
-        
+
         # Should still get premium tier discount (5%) despite invalid promo
         # $100 - $5 = $95 subtotal
         order = response.data

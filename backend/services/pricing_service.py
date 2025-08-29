@@ -8,13 +8,15 @@ from django.utils import timezone
 from marketplace.models import Product, Promotion
 
 
-def calculate_price(product_id, quantity, user_tier, promo_code=None, max_discount_percent=10):
+def calculate_price(
+    product_id, quantity, user_tier, promo_code=None, max_discount_percent=10
+):
     product = Product.objects.get(product_id=product_id)
-    
+
     # Store original price for discount calculations
     original_price = product.price
     unit_price = product.price
-    
+
     # Phase 1: Apply tier discount to unit price
     tier_discount_amount = Decimal("0")
     if user_tier == "premium":
@@ -24,9 +26,9 @@ def calculate_price(product_id, quantity, user_tier, promo_code=None, max_discou
         tier_discount_amount = original_price * Decimal("0.10")
         unit_price = unit_price * Decimal("0.90")
 
-    # Calculate subtotal after tier discount
-    subtotal = unit_price * quantity
-    
+    # Note: subtotal calculated but not used in final calculation
+    # Final total uses original_price to prevent compounding
+
     # Phase 2: Calculate promo discount from ORIGINAL price (not tier-discounted price)
     promo_discount_amount = Decimal("0")
     if promo_code:
@@ -41,7 +43,9 @@ def calculate_price(product_id, quantity, user_tier, promo_code=None, max_discou
             if promo.usage_count < promo.usage_limit:
                 if promo.discount_type == "percentage":
                     # Apply promo discount to original price, not tier-discounted price
-                    promo_discount_amount = (original_price * quantity) * (promo.discount_value / 100)
+                    promo_discount_amount = (original_price * quantity) * (
+                        promo.discount_value / 100
+                    )
                 else:
                     # Fixed discount applies to the entire order (not per unit)
                     promo_discount_amount = promo.discount_value
@@ -50,16 +54,22 @@ def calculate_price(product_id, quantity, user_tier, promo_code=None, max_discou
                 promo.save()
         except Promotion.DoesNotExist:
             pass
-    
+
     # Calculate total discount and apply cap
     total_discount_amount = (tier_discount_amount * quantity) + promo_discount_amount
     total_before_discount = original_price * quantity
-    total_discount_percent = (total_discount_amount / total_before_discount * 100) if total_before_discount > 0 else 0
-    
+    total_discount_percent = (
+        (total_discount_amount / total_before_discount * 100)
+        if total_before_discount > 0
+        else 0
+    )
+
     # Phase 3: Apply maximum discount cap
     if total_discount_percent > max_discount_percent:
-        total_discount_amount = total_before_discount * (Decimal(str(max_discount_percent)) / 100)
-    
+        total_discount_amount = total_before_discount * (
+            Decimal(str(max_discount_percent)) / 100
+        )
+
     final_total = total_before_discount - total_discount_amount
 
     return {

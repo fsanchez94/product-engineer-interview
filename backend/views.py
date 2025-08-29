@@ -174,8 +174,8 @@ class OrderViewSet(viewsets.ModelViewSet):
 
 
 class SellerViewSet(viewsets.ModelViewSet):
-    lookup_field = 'seller_id'
-    
+    lookup_field = "seller_id"
+
     def get_queryset(self):
         # Local application imports
         from marketplace.models import Seller
@@ -192,28 +192,29 @@ class SellerViewSet(viewsets.ModelViewSet):
     def list_sellers(self, request):
         """
         Get list of all sellers for dropdown selection.
-        
+
         Frontend Usage: SellerSelector.js - Populates the seller dropdown
         """
         try:
+            # Local application imports
             from marketplace.models import Seller
-            
-            sellers = Seller.objects.all().values(
-                'seller_id', 'name', 'rating'
-            ).order_by('name')
-            
+
+            sellers = (
+                Seller.objects.all()
+                .values("seller_id", "name", "rating")
+                .order_by("name")
+            )
+
             sellers_data = [
                 {
-                    'seller_id': str(seller['seller_id']),
-                    'name': seller['name'],
-                    'rating': float(seller['rating'] or 0)
+                    "seller_id": str(seller["seller_id"]),
+                    "name": seller["name"],
+                    "rating": float(seller["rating"] or 0),
                 }
                 for seller in sellers
             ]
-            
-            return Response({
-                'sellers': sellers_data
-            })
+
+            return Response({"sellers": sellers_data})
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -233,7 +234,9 @@ class SellerViewSet(viewsets.ModelViewSet):
 
         try:
             seller = self.get_object()
-            sales_data = analytics_service.get_seller_sales_performance(seller.seller_id)
+            sales_data = analytics_service.get_seller_sales_performance(
+                seller.seller_id
+            )
             return Response(sales_data)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
@@ -255,50 +258,58 @@ class PlatformViewSet(viewsets.ViewSet):
     """
     Platform-wide analytics endpoints for marketplace insights.
     """
-    
+
     @action(detail=False, methods=["get"], url_path="category-market-share")
     def category_market_share(self, request):
         """
         Get market share by category across the entire platform.
         """
         try:
+            # Local application imports
             from services import analytics_service
+
             market_share_data = analytics_service.get_platform_category_market_share()
             return Response(market_share_data)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-    
+
     @action(detail=False, methods=["get"], url_path="top-products")
     def top_products(self, request):
         """
         Get top products by revenue across the entire platform.
         """
         try:
+            # Local application imports
             from services import analytics_service
+
             products_data = analytics_service.get_platform_top_products()
             return Response(products_data)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-    
+
     @action(detail=False, methods=["get"], url_path="search-analytics")
     def search_analytics(self, request):
         """
         Get search analytics including most searched terms and conversion rates.
         """
         try:
+            # Local application imports
             from services import analytics_service
+
             search_data = analytics_service.get_platform_search_analytics()
             return Response(search_data)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-    
+
     @action(detail=False, methods=["get"], url_path="revenue-by-state")
     def revenue_by_state(self, request):
         """
         Get revenue breakdown by state across the entire platform.
         """
         try:
+            # Local application imports
             from services import analytics_service
+
             state_data = analytics_service.get_platform_revenue_by_state()
             return Response(state_data)
         except Exception as e:
